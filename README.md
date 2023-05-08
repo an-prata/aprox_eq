@@ -1,0 +1,2 @@
+# aprox_eq
+Crate for determining aproximate equality, particularly between floating point numbers. The `aprox_eq` folder has this crate, the `float_err` folder contains a binary application for calculating floating point error, its pretty simple but informs the `1e-16` for `f64` and `1e-8` for `f32` constant values used for determining aproximate equality. A google sheet with this data can be found [here](https://docs.google.com/spreadsheets/d/1In00LHwgNE-IQBjctHq1QW63a7rRg4kM2sKsBDc1dkk/edit?usp=sharing) and pdf exports of its pages are in the root of the repo.
