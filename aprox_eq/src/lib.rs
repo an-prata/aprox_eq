@@ -133,7 +133,7 @@ macro_rules! assert_aprox_ne {
 impl AproxEq for f64 {
     fn aprox_eq(&self, other: &Self) -> bool {
         // Aproximately equal if within 1^-16 of eachother.
-        (self - other).abs() < 1e-16
+        (self - other).abs() < 1e-12
     }
 }
 
