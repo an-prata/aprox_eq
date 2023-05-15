@@ -25,11 +25,6 @@ fn impl_aprox_eq(input: &DeriveInput) -> TokenStream {
             ..
         }) => &fields.named,
 
-        syn::Data::Struct(syn::DataStruct {
-            fields: syn::Fields::Unnamed(fields),
-            ..
-        }) => &fields.unnamed,
-
         _ => panic!("Cannot derive `AproxEq` on non-struct."),
     };
 
