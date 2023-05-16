@@ -155,10 +155,7 @@ mod tests {
     }
 
     #[derive(AproxEq, Debug)]
-    struct SomeAproxEq {
-        pub a: SomeFoats,
-        pub b: SomeFoats,
-    }
+    struct SomeAproxEq(SomeFoats, SomeFoats);
 
     #[test]
     fn basic_aprox_eq() {
@@ -186,14 +183,14 @@ mod tests {
         );
 
         assert_aprox_eq!(
-            SomeAproxEq {
-                a: SomeFoats { a: 3f64, b: 2f32 },
-                b: SomeFoats { a: 5f64, b: 4f32 }
-            },
-            SomeAproxEq {
-                a: SomeFoats { a: 3f64, b: 2f32 },
-                b: SomeFoats { a: 5f64, b: 4f32 }
-            }
+            SomeAproxEq(
+                SomeFoats { a: 3f64, b: 2f32 },
+                SomeFoats { a: 5f64, b: 4f32 }
+            ),
+            SomeAproxEq(
+                SomeFoats { a: 3f64, b: 2f32 },
+                SomeFoats { a: 5f64, b: 4f32 }
+            )
         );
     }
 }
