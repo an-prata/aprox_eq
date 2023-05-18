@@ -4,6 +4,8 @@
 
 // Makes it so the `aprox_eq::*` path works within this crate for tests.
 extern crate self as aprox_eq;
+use std::{borrow::Cow, ops::Deref};
+
 pub use aprox_derive::AproxEq;
 
 /// Trait for aproximate equality, mostly for dealing with small amounts of
@@ -184,6 +186,27 @@ where
     }
 }
 
+impl<T, U> AproxEq<Box<U>> for Box<T>
+where
+    T: AproxEq<U>,
+{
+    #[inline]
+    fn aprox_eq(&self, other: &Box<U>) -> bool {
+        self.deref().aprox_eq(other.deref())
+    }
+}
+
+impl<'a, T, U> AproxEq<Cow<'a, U>> for Cow<'a, T>
+where
+    T: AproxEq<U> + Clone,
+    U: Clone,
+{
+    #[inline]
+    fn aprox_eq(&self, other: &Cow<U>) -> bool {
+        self.deref().aprox_eq(other.deref())
+    }
+}
+
 impl AproxEq for f64 {
     fn aprox_eq(&self, other: &Self) -> bool {
         // Aproximately equal if within 10^-16 of eachother.
@@ -275,6 +298,14 @@ mod tests {
 
         assert_aprox_eq!(arr0, arr1);
         assert_aprox_eq!(arr0.as_slice(), arr1.as_slice());
+    }
+
+    #[test]
+    fn box_aprox_eq() {
+        let box0 = Box::new(12.2f32);
+        let box1 = Box::new(12.2f32);
+
+        assert_aprox_eq!(box0, box1);
     }
 
     impl AproxEq<f32> for f64 {
