@@ -112,20 +112,75 @@ macro_rules! assert_aprox_ne {
     };
 }
 
+// For when specialization becomes stable.
+
+//impl<T, U> AproxEq for T
+//where
+//    T: Iterator<Item = U>,
+//    U: AproxEq,
+//{
+//    /// Aproximate equality on iterators only compares elements up to the last
+//    /// element of the shortest iterator.
+//    default fn aprox_eq(&self, other: &Self) -> bool {
+//        self.iter()
+//            .zip(other)
+//            .map(|(a, b)| a.aprox_eq(b))
+//            .fold(true, |a, b| a && b)
+//    }
+//}
+
 impl<T, U> AproxEq<Vec<U>> for Vec<T>
 where
     T: AproxEq<U>,
-    U: AproxEq<T>,
 {
+    #[inline]
     fn aprox_eq(&self, other: &Vec<U>) -> bool {
-        match self.len() == other.len() {
-            true => self
-                .iter()
-                .zip(other)
-                .fold(true, |acc, (a, b)| acc && a.aprox_eq(&b)),
+        self.as_slice().aprox_eq(other.as_slice())
+    }
+}
 
+impl<T, U> AproxEq<&U> for &T
+where
+    T: AproxEq<U>,
+{
+    #[inline]
+    fn aprox_eq(&self, other: &&U) -> bool {
+        (*self).aprox_eq(*other)
+    }
+}
+
+impl<T, U> AproxEq<[U]> for [T]
+where
+    T: AproxEq<U>,
+{
+    /// Compares two slices, if they are of different lengths then they cannot
+    /// be equal.
+    fn aprox_eq(&self, other: &[U]) -> bool {
+        match self.len() == other.len() {
+            true => self.iter().zip(other).all(|(a, b)| a.aprox_eq(&b)),
             false => false,
         }
+    }
+}
+
+impl<T, U> AproxEq<&[U]> for &[T]
+where
+    T: AproxEq<U>,
+{
+    #[inline]
+    fn aprox_eq(&self, other: &&[U]) -> bool {
+        (*self).aprox_eq(*other)
+    }
+}
+
+impl<T, U, const N: usize> AproxEq<[U; N]> for [T; N]
+where
+    T: AproxEq<U>,
+{
+    /// Compares two arrays of equal and constant length for aproximate
+    /// equality.
+    fn aprox_eq(&self, other: &[U; N]) -> bool {
+        self.iter().zip(other).all(|(a, b)| a.aprox_eq(&b))
     }
 }
 
@@ -198,9 +253,11 @@ mod tests {
         let vec0 = vec![0f32, 1f32, 1.2f32, 42f32];
         let vec1 = vec0.clone();
         let vec2 = vec![0.1f32, 0f32, 1.2f32, 42f32];
+        let vec3 = vec![0.1f32, 0f32, 1.2f32, 42f32, 32f32, 128f32, 0.3f32];
 
         assert_aprox_eq!(vec0, vec1);
         assert_aprox_ne!(vec0, vec2);
+        assert_aprox_ne!(vec0, vec3);
     }
 
     #[test]
@@ -209,6 +266,15 @@ mod tests {
         let vec1 = vec![0f64, 1f64, 1.2f64, 42f64];
 
         assert_aprox_eq!(vec0, vec1);
+    }
+
+    #[test]
+    fn slice_and_arr_aprox_eq() {
+        let arr0 = [0f32, 1f32, 1.2f32, 42f32];
+        let arr1 = [0f32, 1f32, 1.2f32, 42f32];
+
+        assert_aprox_eq!(arr0, arr1);
+        assert_aprox_eq!(arr0.as_slice(), arr1.as_slice());
     }
 
     impl AproxEq<f32> for f64 {
