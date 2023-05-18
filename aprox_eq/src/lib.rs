@@ -131,13 +131,17 @@ macro_rules! assert_aprox_ne {
 //    }
 //}
 
-impl<T, U> AproxEq<Vec<U>> for Vec<T>
-where
-    T: AproxEq<U>,
-{
-    #[inline]
-    fn aprox_eq(&self, other: &Vec<U>) -> bool {
-        self.as_slice().aprox_eq(other.as_slice())
+impl AproxEq for f64 {
+    fn aprox_eq(&self, other: &Self) -> bool {
+        // Aproximately equal if within 10^-16 of eachother.
+        (self - other).abs() < 1e-12
+    }
+}
+
+impl AproxEq for f32 {
+    fn aprox_eq(&self, other: &Self) -> bool {
+        // Aproximately equal if within 10^-8 of eachother.
+        (self - other).abs() < 1e-6
     }
 }
 
@@ -148,6 +152,16 @@ where
     #[inline]
     fn aprox_eq(&self, other: &&U) -> bool {
         (*self).aprox_eq(*other)
+    }
+}
+
+impl<T, U> AproxEq<Vec<U>> for Vec<T>
+where
+    T: AproxEq<U>,
+{
+    #[inline]
+    fn aprox_eq(&self, other: &Vec<U>) -> bool {
+        self.as_slice().aprox_eq(other.as_slice())
     }
 }
 
@@ -204,20 +218,6 @@ where
     #[inline]
     fn aprox_eq(&self, other: &Cow<U>) -> bool {
         self.deref().aprox_eq(other.deref())
-    }
-}
-
-impl AproxEq for f64 {
-    fn aprox_eq(&self, other: &Self) -> bool {
-        // Aproximately equal if within 10^-16 of eachother.
-        (self - other).abs() < 1e-12
-    }
-}
-
-impl AproxEq for f32 {
-    fn aprox_eq(&self, other: &Self) -> bool {
-        // Aproximately equal if within 10^-8 of eachother.
-        (self - other).abs() < 1e-6
     }
 }
 
