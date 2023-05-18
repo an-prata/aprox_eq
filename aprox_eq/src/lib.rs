@@ -112,23 +112,22 @@ macro_rules! assert_aprox_ne {
     };
 }
 
-// Unfortunatly this doesnt work since f64 or f32 could theoretically implement
-// the `Iterator` trait... :(
+impl<T, U> AproxEq<Vec<U>> for Vec<T>
+where
+    T: AproxEq<U>,
+    U: AproxEq<T>,
+{
+    fn aprox_eq(&self, other: &Vec<U>) -> bool {
+        match self.len() == other.len() {
+            true => self
+                .iter()
+                .zip(other)
+                .fold(true, |acc, (a, b)| acc && a.aprox_eq(&b)),
 
-// impl<T, U> AproxEq for T
-// where
-//     T: Iterator<Item = U>,
-//     U: AproxEq,
-// {
-//     /// Aproximate equality on iterators only compares elements up to the last
-//     /// element of the shortest iterator.
-//     fn aprox_eq(&self, other: &Self) -> bool {
-//         self.iter()
-//             .zip(other)
-//             .map(|(a, b)| a.aprox_eq(b))
-//             .fold(true, |a, b| a && b)
-//     }
-// }
+            false => false,
+        }
+    }
+}
 
 impl AproxEq for f64 {
     fn aprox_eq(&self, other: &Self) -> bool {
@@ -176,7 +175,7 @@ mod tests {
     }
 
     #[test]
-    fn derive_test() {
+    fn derive() {
         assert_aprox_eq!(
             SomeFoats { a: 3f64, b: 2f32 },
             SomeFoats { a: 3f64, b: 2f32 }
@@ -192,5 +191,35 @@ mod tests {
                 SomeFoats { a: 5f64, b: 4f32 }
             )
         );
+    }
+
+    #[test]
+    fn vec_aprox_eq() {
+        let vec0 = vec![0f32, 1f32, 1.2f32, 42f32];
+        let vec1 = vec0.clone();
+        let vec2 = vec![0.1f32, 0f32, 1.2f32, 42f32];
+
+        assert_aprox_eq!(vec0, vec1);
+        assert_aprox_ne!(vec0, vec2);
+    }
+
+    #[test]
+    fn vec_different_types() {
+        let vec0 = vec![0f32, 1f32, 1.2f32, 42f32];
+        let vec1 = vec![0f64, 1f64, 1.2f64, 42f64];
+
+        assert_aprox_eq!(vec0, vec1);
+    }
+
+    impl AproxEq<f32> for f64 {
+        fn aprox_eq(&self, other: &f32) -> bool {
+            (*self as f32).aprox_eq(other)
+        }
+    }
+
+    impl AproxEq<f64> for f32 {
+        fn aprox_eq(&self, other: &f64) -> bool {
+            self.aprox_eq(&(*other as f32))
+        }
     }
 }
