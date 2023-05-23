@@ -221,6 +221,20 @@ where
     }
 }
 
+impl AproxEq for f64 {
+    fn aprox_eq(&self, other: &Self) -> bool {
+        // Aproximately equal if within 10^-12 of eachother.
+        (self - other).abs() < 1e-12
+    }
+}
+
+impl AproxEq for f32 {
+    fn aprox_eq(&self, other: &Self) -> bool {
+        // Aproximately equal if within 10^-6 of eachother.
+        (self - other).abs() < 1e-6
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::AproxEq;
