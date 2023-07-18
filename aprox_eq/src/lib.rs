@@ -131,20 +131,6 @@ macro_rules! assert_aprox_ne {
 //    }
 //}
 
-impl AproxEq for f64 {
-    fn aprox_eq(&self, other: &Self) -> bool {
-        // Aproximately equal if within 10^-16 of eachother.
-        (self - other).abs() < 1e-12
-    }
-}
-
-impl AproxEq for f32 {
-    fn aprox_eq(&self, other: &Self) -> bool {
-        // Aproximately equal if within 10^-8 of eachother.
-        (self - other).abs() < 1e-6
-    }
-}
-
 impl<T, U> AproxEq<&U> for &T
 where
     T: AproxEq<U>,
