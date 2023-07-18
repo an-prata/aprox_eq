@@ -234,6 +234,14 @@ mod tests {
     #[derive(AproxEq, Debug)]
     struct SomeAproxEq(SomeFoats, SomeFoats);
 
+    #[derive(Debug, AproxEq)]
+    enum MyEnum {
+        Var0(f32),
+        Var1(f64),
+        Var2(f32, f32, f64),
+        Var3 { a: f32, b: f64 },
+    }
+
     #[test]
     fn basic_aprox_eq() {
         assert_aprox_eq!(1.0002_f64, 1.0001999999999999_f64);
@@ -253,7 +261,7 @@ mod tests {
     }
 
     #[test]
-    fn derive() {
+    fn derive_struct() {
         assert_aprox_eq!(
             SomeFoats { a: 3f64, b: 2f32 },
             SomeFoats { a: 3f64, b: 2f32 }
@@ -272,6 +280,20 @@ mod tests {
     }
 
     #[test]
+    fn derive_enum() {
+        assert_aprox_eq!(MyEnum::Var0(0f32), MyEnum::Var0(0f32));
+        assert_aprox_ne!(MyEnum::Var0(0f32), MyEnum::Var1(0f64));
+        assert_aprox_eq!(
+            MyEnum::Var2(0f32, 1f32, 2f64),
+            MyEnum::Var2(0f32, 1f32, 2f64)
+        );
+        assert_aprox_eq!(
+            MyEnum::Var3 { a: 3f32, b: 6f64 },
+            MyEnum::Var3 { a: 3f32, b: 6f64 }
+        );
+    }
+
+    #[test]
     fn vec_aprox_eq() {
         let vec0 = vec![0f32, 1f32, 1.2f32, 42f32];
         let vec1 = vec0.clone();
@@ -281,14 +303,6 @@ mod tests {
         assert_aprox_eq!(vec0, vec1);
         assert_aprox_ne!(vec0, vec2);
         assert_aprox_ne!(vec0, vec3);
-    }
-
-    #[test]
-    fn vec_different_types() {
-        let vec0 = vec![0f32, 1f32, 1.2f32, 42f32];
-        let vec1 = vec![0f64, 1f64, 1.2f64, 42f64];
-
-        assert_aprox_eq!(vec0, vec1);
     }
 
     #[test]
@@ -306,17 +320,5 @@ mod tests {
         let box1 = Box::new(12.2f32);
 
         assert_aprox_eq!(box0, box1);
-    }
-
-    impl AproxEq<f32> for f64 {
-        fn aprox_eq(&self, other: &f32) -> bool {
-            (*self as f32).aprox_eq(other)
-        }
-    }
-
-    impl AproxEq<f64> for f32 {
-        fn aprox_eq(&self, other: &f64) -> bool {
-            self.aprox_eq(&(*other as f32))
-        }
     }
 }
