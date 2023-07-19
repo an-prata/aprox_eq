@@ -26,7 +26,7 @@ fn impl_aprox_eq(input: DeriveInput) -> TokenStream {
     match &input.data {
         syn::Data::Struct(syn::DataStruct { fields, .. }) => impl_struct(name, fields),
         syn::Data::Enum(syn::DataEnum { variants, .. }) => impl_enum(name, variants),
-        _ => panic!("Can only derive on struct or enums"),
+        _ => panic!("`AproxEq` can only derive on struct or enums"),
     }
 }
 
@@ -61,7 +61,13 @@ fn impl_struct(name: &Ident, fields: &Fields) -> TokenStream {
             }
         }
 
-        _ => panic!("Cannot derive `AproxEq` on non-struct."),
+        syn::Fields::Unit => quote! {
+            impl AproxEq for #name {
+                fn aprox_eq(&self, other: &Self) -> bool {
+                    true
+                }
+            }
+        },
     }
     .into()
 }
