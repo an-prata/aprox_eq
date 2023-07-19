@@ -294,6 +294,28 @@ mod tests {
     }
 
     #[test]
+    fn derive_unti() {
+        #[derive(Debug, AproxEq)]
+        struct UnitStruct;
+
+        #[derive(Debug, AproxEq)]
+        enum UnitEnum {
+            UnitVariant,
+        }
+
+        #[derive(Debug, AproxEq)]
+        struct EmptyStruct {}
+
+        #[derive(Debug, AproxEq)]
+        struct EmptyTupleStruct();
+
+        assert_aprox_eq!(UnitStruct, UnitStruct);
+        assert_aprox_eq!(UnitEnum::UnitVariant, UnitEnum::UnitVariant);
+        assert_aprox_eq!(EmptyStruct {}, EmptyStruct {});
+        assert_aprox_eq!(EmptyTupleStruct(), EmptyTupleStruct());
+    }
+
+    #[test]
     fn vec_aprox_eq() {
         let vec0 = vec![0f32, 1f32, 1.2f32, 42f32];
         let vec1 = vec0.clone();
