@@ -6,7 +6,6 @@
 // that should be public this stuff should get moved to aprox_eq.
 
 use proc_macro::TokenStream;
-use proc_macro2::Span;
 use quote::{format_ident, quote};
 use syn::{
     self, punctuated::Punctuated, token::Comma, DeriveInput, Field, Fields, FieldsNamed,
@@ -36,38 +35,26 @@ fn impl_aprox_eq(input: DeriveInput) -> TokenStream {
 /// [`TokenStream`]: TokenStream
 /// [`Ident`]: Ident
 fn impl_struct(name: &Ident, fields: &Fields) -> TokenStream {
-    match &fields {
+    let condition = match &fields {
         syn::Fields::Named(f) => {
             let field_ids = f.named.iter().map(|field| &field.ident);
-
-            quote! {
-                impl AproxEq for #name {
-                    fn aprox_eq(&self, other: &Self) -> bool {
-                        true #(&& self.#field_ids.aprox_eq(&other.#field_ids))*
-                    }
-                }
-            }
+            quote! { true #(&& self.#field_ids.aprox_eq(&other.#field_ids))* }
         }
 
         syn::Fields::Unnamed(f) => {
             let field_ids = (0..f.unnamed.len()).map(syn::Index::from);
-
-            quote! {
-                impl AproxEq for #name {
-                    fn aprox_eq(&self, other: &Self) -> bool {
-                        true #(&& self.#field_ids.aprox_eq(&other.#field_ids))*
-                    }
-                }
-            }
+            quote! { true #(&& self.#field_ids.aprox_eq(&other.#field_ids))* }
         }
 
-        syn::Fields::Unit => quote! {
-            impl AproxEq for #name {
-                fn aprox_eq(&self, other: &Self) -> bool {
-                    true
-                }
+        syn::Fields::Unit => quote! { true },
+    };
+
+    quote! {
+        impl AproxEq for #name {
+            fn aprox_eq(&self, other: &Self) -> bool {
+                #condition
             }
-        },
+        }
     }
     .into()
 }
@@ -148,11 +135,11 @@ fn impl_var_unnamed(
     unnamed: &Punctuated<Field, Comma>,
 ) -> proc_macro2::TokenStream {
     let idents_self: Vec<_> = (0..unnamed.len())
-        .map(|i| Ident::new(format!("self_{}", i).as_str(), Span::call_site()))
+        .map(|i| format_ident!("self_{}", i))
         .collect();
 
     let idents_other: Vec<_> = (0..unnamed.len())
-        .map(|i| Ident::new(format!("other_{}", i).as_str(), Span::call_site()))
+        .map(|i| format_ident!("other_{}", i))
         .collect();
 
     let var_ident = &variant.ident;
