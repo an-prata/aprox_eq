@@ -207,6 +207,23 @@ where
     }
 }
 
+impl<T, U> AproxEq<Option<U>> for Option<T>
+where
+    T: AproxEq<U>,
+{
+    fn aprox_eq(&self, other: &Option<U>) -> bool {
+        if self.is_some() && other.is_some() {
+            return self.as_ref().unwrap().aprox_eq(other.as_ref().unwrap());
+        }
+
+        if self.is_none() && other.is_none() {
+            return true;
+        }
+
+        false
+    }
+}
+
 impl AproxEq for f64 {
     fn aprox_eq(&self, other: &Self) -> bool {
         // Aproximately equal if within 10^-12 of eachother.
@@ -342,5 +359,12 @@ mod tests {
         let box1 = Box::new(12.2f32);
 
         assert_aprox_eq!(box0, box1);
+    }
+
+    #[test]
+    fn option_aprox_eq() {
+        assert_aprox_eq!(None::<f32>, None::<f32>);
+        assert_aprox_eq!(Some(1f32), Some(1f32));
+        assert_aprox_ne!(None::<f32>, Some(1f32));
     }
 }
