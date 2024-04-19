@@ -1,8 +1,11 @@
 # aprox_eq
-Crate for determining aproximate equality, particularly between floating point numbers. This library is intended mostly as a quick to import and derivable way of mitigating floating point error. The `aprox_eq` folder has this crate, the `float_err` folder contains a binary application for calculating floating point error, its pretty simple but informs the `1e-12` for `f64` and `1e-6` for `f32` constant values used for determining aproximate equality. A google sheet with this data can be found [here](https://docs.google.com/spreadsheets/d/1In00LHwgNE-IQBjctHq1QW63a7rRg4kM2sKsBDc1dkk/edit?usp=sharing) and pdf exports of its pages are in the root of the repo.
+Crate for determining aproximate equality, particularly between floating point numbers. This library is intended mostly as a quick to import and derivable way of mitigating floating point error. Because of the way floating point number work, loosing accurate decimal places as the order of magnitude increase, and gaining them as it goes down, a simple tolerance is sub-optimal. Instead `aprox_eq` uses an understanding of the standard behind floating point numbers, and actually makes its aproximations based on the accuracy of the floating point standard at the order of magnitude of the floats being compared. This means looks at the bits of the mantissa, the fractional part of the float, and comparing them to be with a certain range of integer values, while taking into consideration the equality of the exponent and sign of the floating oint number.
 
+# TL;DR: as your floats get more precise, so does `aprox_eq`
 ```rust
 use aprox_eq::{assert_aprox_eq, assert_aprox_ne, AproxEq};
+
+// You can derive the `AproxEq` trait the same way you can with `Eq` or `PartialEq`!
 
 #[derive(AproxEq, Debug)]
 struct MyStruct {
@@ -16,28 +19,26 @@ fn main() {
         b: 4.8f64,
     };
 
-    // This is going to be just outside the bounds of `aprox_eq`'s impl of
-    // `AproxEq` for `f32` and `f64`, which will return false for any two
-    // numbers with an absolute difference of `10^-6` and `10^-12` respectively.
-    //
-    // These bounds are extremely tight for these floating point types to ensure
-    // that anything much larger than some accumulated floating point error is
-    // not aproximately equal.
     let y = MyStruct {
-        a: 3.2f32 - 1e-6,
-        b: 4.8f64 - 1e-12,
+        a: 3.2f32 - 1e-8,
+        b: 4.8f64 - 1e-14,
     };
 
-    // However, for their respective types any two numbers within those bounds
-    // are considered aproximately equal, even if they arent exactly the same
-    // number, allowing for very precise mitigation of floating point error.
-    let z = MyStruct {
-        a: 3.2f32 - 1e-7,
-        b: 4.8f64 - 1e-13,
-    };
+    assert_aprox_eq!(x, y);
 
-    assert_aprox_ne!(x, y);
-    assert_aprox_eq!(x, z);
+    // Some normal size numbers
+    assert_aprox_eq!(1.0002_f64, 1.0001999999999999_f64);
+    assert_aprox_ne!(1.002_f64, 1.001_f64);
+
+    // Tiny numbers, `aprox_eq` now requires that the numbers are closer to
+    // eachother, since the float type can now store a higher precision
+    assert_aprox_eq!(0.000_000_001_f64, 0.000_000_001_000_000_000_000_001_f64);
+    assert_aprox_ne!(0.000_000_001_f64, 0.000_000_001_000_000_000_000_008_f64);
+
+    // Large numbers, `aprox_eq` will now allow the numbers to be a greater
+    // difference in value, since the float type has lost some precision
+    assert_aprox_eq!(1_000_000_000_f32, 1_000_000_010_f32);
+    assert_aprox_ne!(1_000_000_000_f32, 1_000_000_100_f32);
 }
 ```
 
