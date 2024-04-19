@@ -1,12 +1,17 @@
-// aprox_eq Copyright (c) 2023 Evan Overman (https://an-prata.it).
+// aprox_eq Copyright (c) 2024 Evan Overman (https://an-prata.it).
 // Licensed under the MIT License.
 // See LICENSE file in repository root for complete license text.
+
+#![feature(float_next_up_down)]
+
+mod floats;
 
 // Makes it so the `aprox_eq::*` path works within this crate for tests.
 extern crate self as aprox_eq;
 use std::{borrow::Cow, ops::Deref};
 
 pub use aprox_derive::AproxEq;
+use floats::FloatingComponentMask;
 
 /// Trait for aproximate equality, mostly for dealing with small amounts of
 /// error that accumulate in floating point numbers which can be particularly
@@ -224,17 +229,42 @@ where
     }
 }
 
+const F32_TOLERANCE: u32 = 2;
+const F64_TOLERANCE: u64 = 8;
+
 impl AproxEq for f64 {
     fn aprox_eq(&self, other: &Self) -> bool {
-        // Aproximately equal if within 10^-12 of eachother.
-        (self - other).abs() < 1e-12
+        if self.eq_sgnificance(other) {
+            self.mantissa().abs_diff(other.mantissa()) < F64_TOLERANCE
+        } else {
+            let exp_diff = self.exponent().abs_diff(other.exponent());
+            let promoted_diff = self
+                .promote_mantissa(F64_TOLERANCE as u32)
+                .abs_diff(other.promote_mantissa(F64_TOLERANCE as u32));
+
+            !(self.mantissa().abs_diff(other.mantissa()) < F64_TOLERANCE)
+                && self.sign() == other.sign()
+                && exp_diff == 1
+                && promoted_diff < F64_TOLERANCE
+        }
     }
 }
 
 impl AproxEq for f32 {
     fn aprox_eq(&self, other: &Self) -> bool {
-        // Aproximately equal if within 10^-6 of eachother.
-        (self - other).abs() < 1e-6
+        if self.eq_sgnificance(other) {
+            self.mantissa().abs_diff(other.mantissa()) < F32_TOLERANCE
+        } else {
+            let exp_diff = self.exponent().abs_diff(other.exponent());
+            let promoted_diff = self
+                .promote_mantissa(F32_TOLERANCE)
+                .abs_diff(other.promote_mantissa(F32_TOLERANCE));
+
+            !(self.mantissa().abs_diff(other.mantissa()) < F32_TOLERANCE)
+                && self.sign() == other.sign()
+                && exp_diff == 1
+                && promoted_diff < F32_TOLERANCE
+        }
     }
 }
 
@@ -260,9 +290,37 @@ mod tests {
     }
 
     #[test]
-    fn basic_aprox_eq() {
+    fn aprox_eq_basic() {
         assert_aprox_eq!(1.0002_f64, 1.0001999999999999_f64);
+        assert_aprox_ne!(1.002_f64, 1.001_f64);
+        assert_aprox_eq!(1.0002_f32, 1.0001999999999999_f32);
         assert_aprox_ne!(1.002_f32, 1.001_f32);
+    }
+
+    #[test]
+    fn aprox_eq_very_small() {
+        assert_aprox_eq!(0.000_000_001_f64, 0.000_000_001_000_000_000_000_001_f64);
+        assert_aprox_ne!(0.000_000_001_f64, 0.000_000_001_000_000_000_000_008_f64);
+    }
+
+    #[test]
+    fn aprox_eq_very_large() {
+        assert_aprox_eq!(1_000_000_000_f32, 1_000_000_010_f32);
+        assert_aprox_ne!(1_000_000_000_f32, 1_000_000_100_f32);
+        assert_aprox_eq!(1_000_000_000_f64, 1_000_000_000.000_000_1_f64);
+        assert_aprox_ne!(1_000_000_000_f64, 1_000_000_000.000_001_f64);
+    }
+
+    #[test]
+    fn increments() {
+        let mut a = 0.0f32;
+        let mut b = a.next_up();
+
+        while b.is_finite() {
+            assert_aprox_eq!(a, b);
+            a = a.next_up();
+            b = b.next_up();
+        }
     }
 
     #[test]

@@ -3,8 +3,8 @@ name = "aprox_eq"
 authors = ["Evan Overman <evanrileyoverman@gmail.com>"]
 repository = "https://github.com/an-prata/aprox_eq"
 license = "MIT"
-description = "A simple crate for determining aproximate equality between floating point types and deriving this capability to struct comprised of floating point numbers."
-version = "1.6.2"
+description = "A simple crate for determining aproximate equality between floating point types and deriving this capability to structs comprised of floating point numbers and other implementers of `AproxEq`."
+version = "2.0.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
