@@ -2,8 +2,6 @@
 // Licensed under the MIT License.
 // See LICENSE file in repository root for complete license text.
 
-#![feature(float_next_up_down)]
-
 mod floats;
 
 // Makes it so the `aprox_eq::*` path works within this crate for tests.
