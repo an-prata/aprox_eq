@@ -6,7 +6,14 @@ mod floats;
 
 // Makes it so the `aprox_eq::*` path works within this crate for tests.
 extern crate self as aprox_eq;
-use std::{borrow::Cow, ops::Deref};
+
+use std::{
+    borrow::Cow,
+    cell::{Cell, OnceCell, RefCell},
+    ops::Deref,
+    rc::Rc,
+    sync::Arc,
+};
 
 pub use aprox_derive::AproxEq;
 use floats::FloatingComponentMask;
@@ -219,6 +226,8 @@ where
 
 impl<T, U> AproxEq<Box<U>> for Box<T>
 where
+    T: ?Sized,
+    U: ?Sized,
     T: AproxEq<U>,
 {
     #[inline]
@@ -227,13 +236,71 @@ where
     }
 }
 
-impl<'a, T, U> AproxEq<Cow<'a, U>> for Cow<'a, T>
+impl<'a, 'b, T, U> AproxEq<Cow<'b, U>> for Cow<'a, T>
 where
+    T: ?Sized,
+    U: ?Sized,
     T: AproxEq<U> + Clone,
     U: Clone,
 {
     #[inline]
     fn aprox_eq(&self, other: &Cow<U>) -> bool {
+        self.deref().aprox_eq(other.deref())
+    }
+}
+
+impl<T, U> AproxEq<Cell<U>> for Cell<T>
+where
+    T: ?Sized,
+    U: ?Sized,
+    T: AproxEq<U>,
+{
+    fn aprox_eq(&self, other: &Cell<U>) -> bool {
+        // Doing `as_ptr` then `as_ref` avoids dereferencing the pointer and allows us to lean on
+        // the `Option` implementation. The data here is never modified and a null pointer should
+        // never be dereferenced, so this code should be safe.
+        unsafe { AproxEq::aprox_eq(&self.as_ptr().as_ref(), &other.as_ptr().as_ref()) }
+    }
+}
+
+impl<T, U> AproxEq<OnceCell<U>> for OnceCell<T>
+where
+    T: AproxEq<U>,
+{
+    fn aprox_eq(&self, other: &OnceCell<U>) -> bool {
+        AproxEq::aprox_eq(&self.get(), &other.get())
+    }
+}
+
+impl<T, U> AproxEq<RefCell<U>> for RefCell<T>
+where
+    T: ?Sized,
+    U: ?Sized,
+    T: AproxEq<U>,
+{
+    fn aprox_eq(&self, other: &RefCell<U>) -> bool {
+        self.borrow().deref().aprox_eq(other.borrow().deref())
+    }
+}
+
+impl<T, U> AproxEq<Rc<U>> for Rc<T>
+where
+    T: ?Sized,
+    U: ?Sized,
+    T: AproxEq<U>,
+{
+    fn aprox_eq(&self, other: &Rc<U>) -> bool {
+        self.deref().aprox_eq(other.deref())
+    }
+}
+
+impl<T, U> AproxEq<Arc<U>> for Arc<T>
+where
+    T: ?Sized,
+    U: ?Sized,
+    T: AproxEq<U>,
+{
+    fn aprox_eq(&self, other: &Arc<U>) -> bool {
         self.deref().aprox_eq(other.deref())
     }
 }
@@ -296,6 +363,12 @@ impl AproxEq for f32 {
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        cell::{Cell, OnceCell, RefCell},
+        rc::Rc,
+        sync::Arc,
+    };
+
     use crate::AproxEq;
 
     #[derive(AproxEq, Debug)]
@@ -443,6 +516,47 @@ mod tests {
         let box1 = Box::new(12.2f32);
 
         assert_aprox_eq!(box0, box1);
+    }
+
+    #[test]
+    fn cell_aprox_eq() {
+        assert_aprox_eq!(Cell::new(1.2f32), Cell::new(1.200000000001f32));
+        assert_aprox_ne!(Cell::new(1.2), Cell::new(1.3));
+    }
+
+    #[test]
+    fn oncecell_aprox_eq() {
+        let a = OnceCell::new();
+        let b = OnceCell::new();
+        let c = OnceCell::new();
+        let d = OnceCell::new();
+
+        a.set(1.2f32).expect("Should be able to write `OnceCell`");
+        b.set(1.200000000001f32)
+            .expect("Should be able to write `OnceCell`");
+        c.set(1.2f32).expect("Should be able to write `OnceCell`");
+        d.set(1.3f32).expect("Should be able to write `OnceCell`");
+
+        assert_aprox_eq!(a, b);
+        assert_aprox_ne!(c, d);
+    }
+
+    #[test]
+    fn refcell_aprox_eq() {
+        assert_aprox_eq!(RefCell::new(1.2f32), RefCell::new(1.200000000001f32));
+        assert_aprox_ne!(RefCell::new(1.2), RefCell::new(1.3));
+    }
+
+    #[test]
+    fn reference_counted_aprox_eq() {
+        assert_aprox_eq!(Rc::new(1.2f32), Rc::new(1.200000000001f32));
+        assert_aprox_ne!(Rc::new(1.2), Rc::new(1.3));
+    }
+
+    #[test]
+    fn atomic_reference_counted_aprox_eq() {
+        assert_aprox_eq!(Arc::new(1.2f32), Arc::new(1.200000000001f32));
+        assert_aprox_ne!(Arc::new(1.2), Arc::new(1.3));
     }
 
     #[test]
