@@ -138,11 +138,49 @@ macro_rules! assert_aprox_ne {
 
 impl<T, U> AproxEq<&U> for &T
 where
+    T: ?Sized,
+    U: ?Sized,
     T: AproxEq<U>,
 {
     #[inline]
     fn aprox_eq(&self, other: &&U) -> bool {
-        (*self).aprox_eq(*other)
+        AproxEq::aprox_eq(*self, *other)
+    }
+}
+
+impl<T, U> AproxEq<&U> for &mut T
+where
+    T: ?Sized,
+    U: ?Sized,
+    T: AproxEq<U>,
+{
+    #[inline]
+    fn aprox_eq(&self, other: &&U) -> bool {
+        AproxEq::aprox_eq(*self, *other)
+    }
+}
+
+impl<T, U> AproxEq<&mut U> for &T
+where
+    T: ?Sized,
+    U: ?Sized,
+    T: AproxEq<U>,
+{
+    #[inline]
+    fn aprox_eq(&self, other: &&mut U) -> bool {
+        AproxEq::aprox_eq(*self, *other)
+    }
+}
+
+impl<T, U> AproxEq<&mut U> for &mut T
+where
+    T: ?Sized,
+    U: ?Sized,
+    T: AproxEq<U>,
+{
+    #[inline]
+    fn aprox_eq(&self, other: &&mut U) -> bool {
+        AproxEq::aprox_eq(*self, *other)
     }
 }
 
@@ -167,16 +205,6 @@ where
             true => self.iter().zip(other).all(|(a, b)| a.aprox_eq(&b)),
             false => false,
         }
-    }
-}
-
-impl<T, U> AproxEq<&[U]> for &[T]
-where
-    T: AproxEq<U>,
-{
-    #[inline]
-    fn aprox_eq(&self, other: &&[U]) -> bool {
-        (*self).aprox_eq(*other)
     }
 }
 
